@@ -1,67 +1,284 @@
-<script>
-    // COMUNICAZIONE CON PAGINA MOBILE
-    
-    // Quando si inserisce un codice, verifica sul server
-    async function verifyCode(code) {
-        try {
-            const response = await fetch(`/api/files?code=${code}`);
-            const data = await response.json();
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoDrop ALG - Test API</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 25px;
+            padding: 40px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            margin: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        
+        .status-box {
+            background: #f8f9ff;
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            border: 3px solid #e0e7ff;
+        }
+        
+        .test-button {
+            background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%);
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            font-size: 1.2rem;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 20px 0;
+            transition: all 0.3s;
+        }
+        
+        .test-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(76, 175, 80, 0.3);
+        }
+        
+        .result {
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 25px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .success {
+            background: #d4edda;
+            border: 2px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .error {
+            background: #f8d7da;
+            border: 2px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .loading {
+            background: #fff3cd;
+            border: 2px solid #ffeaa7;
+            color: #856404;
+        }
+        
+        .file-list {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: left;
+            color: #333;
+            border: 2px dashed #667eea;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0,0,0,0.1);
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .instructions {
+            background: #e8f4ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+            color: #333;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 GoDrop ALG - Test API</h1>
+        <p style="color: #666; margin-bottom: 30px; font-size: 1.1rem;">
+            Test di connessione all'API backend di Vercel
+        </p>
+        
+        <div class="status-box">
+            <h2 style="color: #333; margin-bottom: 15px;">Test API Endpoint</h2>
+            <p style="color: #666; margin-bottom: 20px;">
+                Codici di test disponibili: <strong>TEST</strong> o <strong>ABCD</strong>
+            </p>
             
-            if (data.success) {
-                // File trovato
-                showDownloadSection(data);
-                return true;
-            } else {
-                // File non trovato
-                showError('Codice non valido o file scaduto');
-                return false;
+            <div style="margin: 25px 0;">
+                <input type="text" id="codeInput" 
+                       value="TEST" 
+                       style="padding: 15px; font-size: 1.5rem; width: 120px; text-align: center; border: 3px solid #ddd; border-radius: 10px; font-weight: bold; letter-spacing: 5px; text-transform: uppercase;"
+                       oninput="this.value = this.value.toUpperCase().replace(/[^A-Z]/g,'').substring(0,4)">
+            </div>
+            
+            <button class="test-button" onclick="testApi()">
+                🔍 TESTA CONNESSIONE API
+            </button>
+            
+            <div id="result" class="result"></div>
+        </div>
+        
+        <div class="instructions">
+            <h3 style="margin-bottom: 15px; color: #333;">📋 Cosa stiamo testando:</h3>
+            <ul style="padding-left: 20px; color: #555;">
+                <li style="margin-bottom: 8px;"><strong>1. File package.json</strong> - Dice a Vercel che questo è un progetto Node.js</li>
+                <li style="margin-bottom: 8px;"><strong>2. File vercel.json</strong> - Configura le rotte e gli endpoint API</li>
+                <li style="margin-bottom: 8px;"><strong>3. API /api/files</strong> - Endpoint che gestisce i codici di download</li>
+                <li><strong>4. Deploy automatico</strong> - Vercel riconosce i cambiamenti e fa redeploy</li>
+            </ul>
+        </div>
+        
+        <div class="file-list">
+            <h3 style="color: #333; margin-bottom: 15px;">📁 File richiesti nel repository:</h3>
+            <ul style="color: #555; list-style: none; padding: 0;">
+                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">✅ <code>package.json</code> - <em>Configurazione progetto Node.js</em></li>
+                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">✅ <code>vercel.json</code> - <em>Configurazione Vercel routes</em></li>
+                <li style="padding: 8px 0; border-bottom: 1px solid #eee;">✅ <code>api/files.js</code> - <em>Endpoint API principale</em></li>
+                <li style="padding: 8px 0;">✅ <code>index.html</code> - <em>Questa pagina di test</em></li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        async function testApi() {
+            const code = document.getElementById('codeInput').value.trim().toUpperCase();
+            const resultDiv = document.getElementById('result');
+            
+            // Mostra loading
+            resultDiv.className = 'result loading';
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <div style="text-align: center;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 10px; font-weight: bold;">Test in corso...</p>
+                    <p>Chiamando: <code>/api/files?code=${code}</code></p>
+                </div>
+            `;
+            
+            try {
+                // Effettua la chiamata API
+                const response = await fetch(`/api/files?code=${code}`);
+                const data = await response.json();
+                
+                // Mostra risultato
+                if (data.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <div style="text-align: center;">
+                            <div style="font-size: 3rem; margin-bottom: 15px;">✅</div>
+                            <h2 style="margin-bottom: 15px;">API FUNZIONANTE!</h2>
+                            <p style="margin-bottom: 10px;"><strong>Messaggio:</strong> ${data.message}</p>
+                            <p style="margin-bottom: 10px;"><strong>Codice verificato:</strong> ${data.code}</p>
+                            <p style="margin-bottom: 10px;"><strong>File trovato:</strong> ${data.file.name}</p>
+                            <p style="margin-bottom: 15px;"><strong>Dimensione:</strong> ${data.file.size}</p>
+                            <div style="background: white; padding: 15px; border-radius: 10px; margin: 20px 0;">
+                                <p style="color: #333; margin-bottom: 10px;"><strong>URL di download:</strong></p>
+                                <a href="${data.file.url}" target="_blank" style="color: #2196F3; word-break: break-all; display: block;">
+                                    ${data.file.url}
+                                </a>
+                            </div>
+                            <button onclick="window.open('${data.file.url}', '_blank')" class="test-button" style="background: #2196F3;">
+                                ⬇️ PROVA DOWNLOAD
+                            </button>
+                        </div>
+                    `;
+                    
+                    // Aggiorna statistiche
+                    updateStats('api_success');
+                    
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `
+                        <div style="text-align: center;">
+                            <div style="font-size: 3rem; margin-bottom: 15px;">❌</div>
+                            <h2 style="margin-bottom: 15px;">API RISPONDE MA...</h2>
+                            <p style="margin-bottom: 15px;"><strong>Errore:</strong> ${data.error}</p>
+                            <p style="margin-bottom: 20px;">Usa i codici: <strong>TEST</strong> o <strong>ABCD</strong></p>
+                            <button onclick="document.getElementById('codeInput').value='TEST'; testApi();" class="test-button">
+                                🔄 PROVA CON "TEST"
+                            </button>
+                        </div>
+                    `;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `
+                    <div style="text-align: center;">
+                        <div style="font-size: 3rem; margin-bottom: 15px;">🚨</div>
+                        <h2 style="margin-bottom: 15px;">ERRORE DI CONNESSIONE</h2>
+                        <p style="margin-bottom: 10px;"><strong>Dettaglio:</strong> ${error.message}</p>
+                        <div style="background: white; padding: 15px; border-radius: 10px; margin: 20px 0; text-align: left; color: #721c24;">
+                            <p style="font-weight: bold; margin-bottom: 10px;">Possibili cause:</p>
+                            <ul style="padding-left: 20px;">
+                                <li>File <code>package.json</code> mancante nel repository</li>
+                                <li>File <code>vercel.json</code> configurato male</li>
+                                <li>Endpoint <code>/api/files.js</code> non esiste</li>
+                                <li>Vercel non ha ancora fatto deploy dei cambiamenti</li>
+                            </ul>
+                        </div>
+                        <p style="margin-top: 20px;">Attendi 2 minuti dopo aver aggiunto i file, poi riprova.</p>
+                    </div>
+                `;
+                
+                // Aggiorna statistiche
+                updateStats('api_error');
             }
-        } catch (error) {
-            console.error('Verify error:', error);
-            showError('Errore di connessione');
-            return false;
         }
-    }
-    
-    // Ascolta messaggi dalla pagina mobile
-    window.addEventListener('message', function(event) {
-        if (event.data.type === 'NEW_CODE') {
-            // Nuovo codice ricevuto dalla pagina mobile
-            const code = event.data.code;
-            document.getElementById('codeInput').value = code;
-            verifyCode(code);
-        }
-    });
-    
-    // QR Code che punta alla pagina mobile con parametro
-    function generateQRCode() {
-        const currentUrl = window.location.href;
-        const mobileUrl = `${window.location.origin}/mobile?ref=${encodeURIComponent(currentUrl)}`;
         
-        // Genera QR code
-        const qrContainer = document.getElementById('qrCode');
-        qrContainer.innerHTML = `
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(mobileUrl)}" 
-                 alt="QR Code" 
-                 style="width: 100%; height: 100%; border-radius: 8px;">
-        `;
-    }
-    
-    // Controlla se c'è un codice nell'URL
-    function checkUrlForCode() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        
-        if (code && code.length === 4) {
-            document.getElementById('codeInput').value = code.toUpperCase();
-            verifyCode(code.toUpperCase());
+        function updateStats(action) {
+            // Invia statistiche (simulate)
+            console.log(`📊 Statistica: ${action}`);
         }
-    }
-    
-    // Inizializza
-    document.addEventListener('DOMContentLoaded', function() {
-        generateQRCode();
-        checkUrlForCode();
-        document.getElementById('codeInput').focus();
-    });
-</script>
+        
+        // Test automatico al caricamento
+        window.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                console.log('🔄 Test automatico API in corso...');
+                testApi();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
