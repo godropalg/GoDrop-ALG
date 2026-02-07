@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GoDrop Mobile - Carica File</title>
+    <style>
+        /* MANTIENI IL TUO CSS ESISTENTE */
+        /* AGGIUNGI QUESTI STILI: */
+        
+        .real-upload-area {
+            border: 3px dashed #4CAF50;
+            background: #f8fff8;
+            padding: 40px 20px;
+            border-radius: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .upload-progress {
+            width: 100%;
+            height: 10px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow: hidden;
+            display: none;
+        }
+        
+        .upload-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            width: 0%;
+            transition: width 0.3s;
+            border-radius: 5px;
+        }
+        
+        .api-status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .api-status.success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .api-status.error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .generated-code {
+            font-size: 3rem;
+            font-weight: bold;
+            letter-spacing: 10px;
+            background: #f8f9ff;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            border: 3px dashed #667eea;
+            text-align: center;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- MANTIENI IL TUO HTML ESISTENTE -->
+    <!-- AGGIUNGI QUESTI ELEMENTI: -->
+    
+    <!-- Area Upload Reale -->
+    <div class="real-upload-area" id="realUploadArea">
+        <div style="font-size: 4rem; margin-bottom: 20px;">📁</div>
+        <h2 style="color: #333;">Carica File Reale</h2>
+        <p style="color: #666; margin: 15px 0;">
+            Scegli un file dal tuo telefono. Verrà caricato sul server.
+        </p>
+        
+        <input type="file" id="realFileInput" style="display: none;">
+        <button onclick="document.getElementById('realFileInput').click()" 
+                style="background: #4CAF50; color: white; border: none; padding: 15px 30px; border-radius: 25px; font-size: 1.1rem; cursor: pointer; font-weight: bold;">
+            📱 SCEGLI FILE DA CARICARE
+        </button>
+        
+        <div class="upload-progress" id="uploadProgress">
+            <div class="upload-progress-bar" id="uploadProgressBar"></div>
+        </div>
+        
+        <div id="uploadStatus" class="api-status"></div>
+    </div>
+    
+    <!-- Codice Generato -->
+    <div id="generatedCode" class="generated-code">
+        <!-- Il codice apparirà qui -->
+    </div>
+
+    <script>
+        // FUNZIONE DI UPLOAD REALE
+        document.getElementById('realFileInput').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Mostra progress bar
+            document.getElementById('uploadProgress').style.display = 'block';
+            document.getElementById('uploadProgressBar').style.width = '0%';
+            
+            try {
+                // Crea FormData
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                // Simula upload con progress
+                const xhr = new XMLHttpRequest();
+                
+                xhr.upload.addEventListener('progress', (event) => {
+                    if (event.lengthComputable) {
+                        const percent = (event.loaded / event.total) * 100;
+                        document.getElementById('uploadProgressBar').style.width = percent + '%';
+                    }
+                });
+                
+                xhr.addEventListener('load', function() {
+                    if (xhr.status === 200) {
+                        const response = JSON.parse(xhr.responseText);
+                        handleUploadSuccess(response, file);
+                    } else {
+                        showUploadError('Errore durante l\'upload');
+                    }
+                });
+                
+                xhr.addEventListener('error', function() {
+                    showUploadError('Errore di connessione');
+                });
+                
+                // Invia al backend
+                xhr.open('POST', '/api/files');
+                xhr.send(formData);
+                
+            } catch (error) {
+                console.error('Upload error:', error);
+                showUploadError('Errore durante l\'upload');
+            }
+        });
+        
+        function handleUploadSuccess(response, file) {
+            // Nascondi progress bar
+            document.getElementById('uploadProgress').style.display = 'none';
+            
+            // Mostra successo
+            const statusDiv = document.getElementById('uploadStatus');
+            statusDiv.className = 'api-status success';
+            statusDiv.innerHTML = `
+                <div style="font-size: 1.2rem; margin-bottom: 10px;">✅ Upload Completato!</div>
+                <div>File: ${file.name}</div>
+                <div>Dimensione: ${formatBytes(file.size)}</div>
+            `;
+            statusDiv.style.display = 'block';
+            
+            // Mostra codice generato
+            const codeDiv = document.getElementById('generatedCode');
+            codeDiv.textContent = response.code;
+            codeDiv.style.display = 'block';
+            
+            // Aggiorna automaticamente la pagina principale
+            updateMainPageWithCode(response.code);
+            
+            // Mostra istruzioni
+            showInstructions(response.code);
+        }
+        
+        function showUploadError(message) {
+            document.getElementById('uploadProgress').style.display = 'none';
+            
+            const statusDiv = document.getElementById('uploadStatus');
+            statusDiv.className = 'api-status error';
+            statusDiv.innerHTML = `
+                <div style="font-size: 1.2rem; margin-bottom: 10px;">❌ Errore!</div>
+                <div>${message}</div>
+            `;
+            statusDiv.style.display = 'block';
+        }
+        
+        function updateMainPageWithCode(code) {
+            // Aggiorna la pagina principale con il nuovo codice
+            // Invia messaggio alla pagina principale se aperta
+            if (window.opener) {
+                window.opener.postMessage({ 
+                    type: 'NEW_CODE', 
+                    code: code 
+                }, '*');
+            }
+            
+            // Aggiorna statistiche
+            updateStats();
+        }
+        
+        function showInstructions(code) {
+            // Crea popup con istruzioni
+            const instructions = `
+                <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 1000; max-width: 400px; width: 90%;">
+                    <h3 style="color: #333; margin-bottom: 20px; text-align: center;">✅ File Caricato!</h3>
+                    <div style="text-align: center; margin: 20px 0;">
+                        <div style="font-size: 2.5rem; font-weight: bold; letter-spacing: 5px; color: #667eea;">${code}</div>
+                        <p style="color: #666; margin-top: 10px;">Codice a 4 lettere</p>
+                    </div>
+                    <div style="background: #f8f9ff; padding: 20px; border-radius: 10px; margin: 20px 0;">
+                        <p style="color: #333; font-weight: bold; margin-bottom: 10px;">Cosa fare ora:</p>
+                        <p>1. Torna al sito principale</p>
+                        <p>2. Inserisci il codice: <strong>${code}</strong></p>
+                        <p>3. Scarica il file sul tuo computer</p>
+                    </div>
+                    <button onclick="this.parentElement.remove()" style="background: #667eea; color: white; border: none; padding: 15px 30px; border-radius: 25px; width: 100%; cursor: pointer; font-weight: bold;">
+                        Ho Capito!
+                    </button>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', instructions);
+        }
+        
+        function updateStats() {
+            // Aggiorna statistiche sul server
+            fetch('/api/stats', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'file_uploaded' })
+            });
+        }
+        
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Ascolta messaggi dalla pagina principale
+        window.addEventListener('message', function(event) {
+            if (event.data.type === 'REQUEST_CODE') {
+                // La pagina principale richiede il codice
+                const code = document.getElementById('generatedCode').textContent;
+                if (code) {
+                    event.source.postMessage({ 
+                        type: 'CODE_RESPONSE', 
+                        code: code 
+                    }, '*');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

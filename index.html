@@ -1,0 +1,67 @@
+<script>
+    // COMUNICAZIONE CON PAGINA MOBILE
+    
+    // Quando si inserisce un codice, verifica sul server
+    async function verifyCode(code) {
+        try {
+            const response = await fetch(`/api/files?code=${code}`);
+            const data = await response.json();
+            
+            if (data.success) {
+                // File trovato
+                showDownloadSection(data);
+                return true;
+            } else {
+                // File non trovato
+                showError('Codice non valido o file scaduto');
+                return false;
+            }
+        } catch (error) {
+            console.error('Verify error:', error);
+            showError('Errore di connessione');
+            return false;
+        }
+    }
+    
+    // Ascolta messaggi dalla pagina mobile
+    window.addEventListener('message', function(event) {
+        if (event.data.type === 'NEW_CODE') {
+            // Nuovo codice ricevuto dalla pagina mobile
+            const code = event.data.code;
+            document.getElementById('codeInput').value = code;
+            verifyCode(code);
+        }
+    });
+    
+    // QR Code che punta alla pagina mobile con parametro
+    function generateQRCode() {
+        const currentUrl = window.location.href;
+        const mobileUrl = `${window.location.origin}/mobile?ref=${encodeURIComponent(currentUrl)}`;
+        
+        // Genera QR code
+        const qrContainer = document.getElementById('qrCode');
+        qrContainer.innerHTML = `
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(mobileUrl)}" 
+                 alt="QR Code" 
+                 style="width: 100%; height: 100%; border-radius: 8px;">
+        `;
+    }
+    
+    // Controlla se c'è un codice nell'URL
+    function checkUrlForCode() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        
+        if (code && code.length === 4) {
+            document.getElementById('codeInput').value = code.toUpperCase();
+            verifyCode(code.toUpperCase());
+        }
+    }
+    
+    // Inizializza
+    document.addEventListener('DOMContentLoaded', function() {
+        generateQRCode();
+        checkUrlForCode();
+        document.getElementById('codeInput').focus();
+    });
+</script>
