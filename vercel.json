@@ -2,32 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "apifiles.js",
+      "src": "api/files.js",
       "use": "@vercel/node"
-    },
-    {
-      "src": "apistats.js", 
-      "use": "@vercel/node"
-    },
-    {
-      "src": "*.html",
-      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/api/files",
-      "dest": "/apifiles.js",
-      "methods": ["GET", "POST"]
-    },
-    {
-      "src": "/api/stats",
-      "dest": "/apistats.js",
-      "methods": ["GET", "POST"]
-    },
-    {
-      "src": "/mobile",
-      "dest": "/mobile.html"
+      "dest": "/api/files.js"
     },
     {
       "src": "/(.*)",
